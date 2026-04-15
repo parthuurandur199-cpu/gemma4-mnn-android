@@ -7,20 +7,20 @@ import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface ChatMessageDao {
+interface ChatSessionDao {
 
-    @Query("SELECT * FROM chat_message WHERE sessionId = :sessionId ORDER BY orderIndex ASC")
-    fun getMessagesForSession(sessionId: Long): Flow<List<ChatMessageEntity>>
+    @Query("SELECT * FROM chat_session ORDER BY updatedAt DESC")
+    fun getAllSessions(): Flow<List<ChatSessionEntity>>
+
+    @Query("SELECT * FROM chat_session WHERE id = :sessionId")
+    suspend fun getSessionById(sessionId: Long): ChatSessionEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMessage(message: ChatMessageEntity): Long
+    suspend fun insertSession(session: ChatSessionEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMessages(messages: List<ChatMessageEntity>): List<Long>
+    @Query("DELETE FROM chat_session WHERE id = :sessionId")
+    suspend fun deleteSession(sessionId: Long): Int
 
-    @Query("DELETE FROM chat_message WHERE sessionId = :sessionId")
-    suspend fun deleteMessagesForSession(sessionId: Long): Int
-
-    @Query("UPDATE chat_message SET content = :content WHERE id = :messageId")
-    suspend fun updateMessageContent(messageId: Long, content: String): Int
+    @Query("DELETE FROM chat_session")
+    suspend fun deleteAllSessions(): Int
 }
