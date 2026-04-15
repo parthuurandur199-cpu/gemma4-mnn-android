@@ -74,7 +74,7 @@ class ChatViewModel(
 
         if (text.startsWith("/search ")) {
             val query = text.removePrefix("/search ").trim()
-            _isGenerating.value = true // Lock the UI while searching
+            _isGenerating.value = true 
             
             viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                 try {
@@ -86,11 +86,9 @@ class ChatViewModel(
                     val response = client.newCall(request).execute()
                     val htmlData = response.body?.string() ?: ""
                     
-                    // Clean HTML tags and limit size
                     val cleanText = htmlData.replace(Regex("<[^>]*>"), " ").replace(Regex("\\s+"), " ").take(1500)
                     val injectedText = "Here is real-time web data: $cleanText \n\nBased on that, answer this: $query"
                     
-                    // Switch back to Main thread to send to Gemma
                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                         _isGenerating.value = false
                         executeSend(injectedText)
@@ -103,7 +101,6 @@ class ChatViewModel(
                 }
             }
         } else {
-            // Normal message handling
             executeSend(text)
         }
     }
