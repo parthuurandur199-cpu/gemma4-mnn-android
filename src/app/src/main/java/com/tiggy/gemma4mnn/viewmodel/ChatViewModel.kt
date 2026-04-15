@@ -11,17 +11,11 @@ import com.tiggy.gemma4mnn.parser.ChannelCallback
 import com.tiggy.gemma4mnn.parser.ChunkType
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlowF
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
-/**
- * ViewModel for the chat screen.
- *
- * Manages message state, generation lifecycle, and user settings.
- * Persists messages to Room database via [ChatRepository].
- */
 class ChatViewModel(
     private val engine: MnnEngine,
     private val settings: SettingsRepository,
@@ -42,31 +36,24 @@ class ChatViewModel(
 
     private val _autoWebSearchEnabled = MutableStateFlow(false)
 
-    // Current active session ID (for persistence)
     private var currentSessionId: Long = 0
-
-    // Current streaming indices (used to update in-progress messages)
     private var currentThinkingIndex = -1
     private var currentTextIndex = -1
     private var messageOrderCounter = 0
 
     init {
-    viewModelScope.launch {
-        settings.thinkingEnabled.collect { enabled ->
-            _thinkingEnabled.value = enabled
+        viewModelScope.launch {
+            settings.thinkingEnabled.collect { enabled ->
+                _thinkingEnabled.value = enabled
+            }
+        }
+        viewModelScope.launch {
+            settings.autoWebSearchEnabled.collect { enabled ->
+                _autoWebSearchEnabled.value = enabled
+            }
         }
     }
-    // ADD THIS:
-    viewModelScope.launch {
-        settings.autoWebSearchEnabled.collect { enabled ->
-            _autoWebSearchEnabled.value = enabled
-        }
-    }
-}
 
-    /**
-     * Load a session from the database.
-     */
     fun loadSession(sessionId: Long) {
         viewModelScope.launch {
             chatRepository.getMessages(sessionId).onEach { msgs ->
@@ -78,47 +65,44 @@ class ChatViewModel(
     }
 
     fun sendMessage(text: String) {
-    if (text.isBlank() || _isGenerating.value) return
+        if (text.isBlank() || _isGenerating.value) return
 
-    // Trigger if manual command OR if the Auto Web Search setting is enabled
-    val isAutoSearch = _autoWebSearchEnabled.value
-    val isManualSearch = text.startsWith("/search ")
+        val isAutoSearch = _autoWebSearchEnabled.value
+        val isManualSearch = text.startsWith("/search ")
 
-    if (isManualSearch || isAutoSearch) {
-        val query = text.removePrefix("/search ").trim()
-        _isGenerating.value = true 
-        
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            try {
-                val client = okhttp3.OkHttpClient()
-                val request = okhttp3.Request.Builder()
-                    .url("https://html.duckduckgo.com/html/?q=$query")
-                    .build()
+        if (isManualSearch || isAutoSearch) {
+            val query = text.removePrefix("/search ").trim()
+            _isGenerating.value = true 
+            
+            viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val client = okhttp3.OkHttpClient()
+                    val request = okhttp3.Request.Builder()
+                        .url("https://html.duckduckgo.com/html/?q=$query")
+                        .build()
+                        
+                    val response = client.newCall(request).execute()
+                    val htmlData = response.body?.string() ?: ""
                     
-                val response = client.newCall(request).execute()
-                val htmlData = response.body?.string() ?: ""
-                
-                val cleanText = htmlData.replace(Regex("<[^>]*>"), " ").replace(Regex("\\s+"), " ").take(1500)
-                
-                // Instruct the model to figure out if it needs the data
-                val injectedText = "Web context: $cleanText \n\nAnalyze the context above. If it contains information relevant to answering the following prompt, use it. If not, ignore it and answer normally.\n\nUser Prompt: $query"
-                
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    _isGenerating.value = false
-                    executeSend(injectedText)
-                }
-            } catch (e: Exception) {
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    _isGenerating.value = false
-                    // Fallback to sending normally if the network fails
-                    executeSend(query) 
+                    val cleanText = htmlData.replace(Regex("<[^>]*>"), " ").replace(Regex("\\s+"), " ").take(1500)
+                    
+                    val injectedText = "Web context: $cleanText \n\nAnalyze the context above. If it contains information relevant to answering the following prompt, use it. If not, ignore it and answer normally.\n\nUser Prompt: $query"
+                    
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        _isGenerating.value = false
+                        executeSend(injectedText)
+                    }
+                } catch (e: Exception) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        _isGenerating.value = false
+                        executeSend(query) 
+                    }
                 }
             }
+        } else {
+            executeSend(text)
         }
-    } else {
-        executeSend(text)
     }
-}
 
     private fun executeSend(finalText: String) {
         val userMsg = ChatMessage.User(content = finalText)
@@ -162,7 +146,7 @@ class ChatViewModel(
         currentTextIndex = -1
 
         val model = _selectedModel.value ?: run {
-            _messages.value = _messages.value + ChatMessage.Error("No model selected")
+            _messages.value = _messages.value + ChatMessage.Error(message = "No model selected")
             _isGenerating.value = false
             return
         }
@@ -208,13 +192,11 @@ class ChatViewModel(
                 _isGenerating.value = false
                 finalizeInProgress()
 
-                // Persist final messages to database
                 viewModelScope.launch {
                     if (currentSessionId == 0L) {
                         val modelName = model.name
                         currentSessionId = chatRepository.createSession(modelName)
                     }
-                    // Only save new messages (those without "db-" prefix)
                     _messages.value.filter { !it.id.startsWith("db-") }.forEachIndexed { index, msg ->
                         chatRepository.saveMessage(currentSessionId, msg, index)
                     }
