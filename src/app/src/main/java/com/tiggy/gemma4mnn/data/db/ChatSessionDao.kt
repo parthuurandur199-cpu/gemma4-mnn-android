@@ -25,6 +25,4 @@ interface ChatSessionDao {
     @Query("DELETE FROM chat_session")
     suspend fun deleteAllSessions()
 
-    @Query("UPDATE chat_session SET updatedAt = :timestamp WHERE id = :sessionId")
-    suspend fun updateSessionTimestamp(sessionId: Long, timestamp: Long = System.currentTimeMillis())
 }
