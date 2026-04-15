@@ -14,9 +14,6 @@ import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
-/**
- * Repository for user preferences using DataStore.
- */
 class SettingsRepository(context: Context) {
     private val dataStore = context.dataStore
 
@@ -26,6 +23,7 @@ class SettingsRepository(context: Context) {
     private val KEY_CONTEXT_LENGTH = intPreferencesKey("context_length")
     private val KEY_TEMPERATURE = floatPreferencesKey("temperature")
     private val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+    private val KEY_AUTO_WEB_SEARCH = booleanPreferencesKey("auto_web_search")
 
     // Flows
     val selectedModel: Flow<String?> = dataStore.data.map { it[KEY_SELECTED_MODEL] }
@@ -33,17 +31,11 @@ class SettingsRepository(context: Context) {
     val contextLength: Flow<Int> = dataStore.data.map { it[KEY_CONTEXT_LENGTH] ?: 4096 }
     val temperature: Flow<Float> = dataStore.data.map { it[KEY_TEMPERATURE] ?: 0.7f }
     val themeMode: Flow<String> = dataStore.data.map { it[KEY_THEME_MODE] ?: "system" }
-    val AUTO_WEB_SEARCH = booleanPreferencesKey("auto_web_search")
-    val autoWebSearchEnabled: Flow<Boolean> = dataStore.data
-    .map { preferences ->
-        preferences[PreferencesKeys.AUTO_WEB_SEARCH] ?: false
-    }
+    val autoWebSearchEnabled: Flow<Boolean> = dataStore.data.map { it[KEY_AUTO_WEB_SEARCH] ?: false }
 
-suspend fun setAutoWebSearchEnabled(enabled: Boolean) {
-    dataStore.edit { preferences ->
-        preferences[PreferencesKeys.AUTO_WEB_SEARCH] = enabled
+    suspend fun setAutoWebSearchEnabled(enabled: Boolean) {
+        dataStore.edit { it[KEY_AUTO_WEB_SEARCH] = enabled }
     }
-}
 
     suspend fun setSelectedModel(modelName: String) {
         dataStore.edit { it[KEY_SELECTED_MODEL] = modelName }
