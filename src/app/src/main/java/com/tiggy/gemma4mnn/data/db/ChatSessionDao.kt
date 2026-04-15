@@ -1,7 +1,6 @@
 package com.tiggy.gemma4mnn.data.db
 
 import androidx.room.Dao
-import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -20,9 +19,8 @@ interface ChatSessionDao {
     suspend fun insertSession(session: ChatSessionEntity): Long
 
     @Query("DELETE FROM chat_session WHERE id = :sessionId")
-    suspend fun deleteSession(sessionId: Long)
+    suspend fun deleteSession(sessionId: Long): Int
 
     @Query("DELETE FROM chat_session")
     suspend fun deleteAllSessions(): Int
-
 }
