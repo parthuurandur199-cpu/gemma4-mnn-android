@@ -97,6 +97,7 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2025.03.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Core Compose
     implementation("androidx.activity:activity-compose:1.10.1")
