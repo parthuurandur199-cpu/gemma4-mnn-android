@@ -26,7 +26,6 @@ class ChatViewModel(
     private val engine: MnnEngine,
     private val settings: SettingsRepository,
     private val chatRepository: ChatRepository,
-    private val _autoWebSearchEnabled = MutableStateFlow(false)
 ) : ViewModel() {
 
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
@@ -40,6 +39,8 @@ class ChatViewModel(
 
     private val _selectedModel = MutableStateFlow<ModelConfig?>(null)
     val selectedModel: StateFlow<ModelConfig?> = _selectedModel.asStateFlow()
+
+    private val _autoWebSearchEnabled = MutableStateFlow(false)
 
     // Current active session ID (for persistence)
     private var currentSessionId: Long = 0
