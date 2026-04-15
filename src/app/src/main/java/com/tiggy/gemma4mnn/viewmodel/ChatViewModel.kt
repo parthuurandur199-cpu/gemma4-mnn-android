@@ -26,6 +26,7 @@ class ChatViewModel(
     private val engine: MnnEngine,
     private val settings: SettingsRepository,
     private val chatRepository: ChatRepository,
+    private val _autoWebSearchEnabled = MutableStateFlow(false)
 ) : ViewModel() {
 
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
@@ -49,12 +50,18 @@ class ChatViewModel(
     private var messageOrderCounter = 0
 
     init {
-        viewModelScope.launch {
-            settings.thinkingEnabled.collect { enabled ->
-                _thinkingEnabled.value = enabled
-            }
+    viewModelScope.launch {
+        settings.thinkingEnabled.collect { enabled ->
+            _thinkingEnabled.value = enabled
         }
     }
+    // ADD THIS:
+    viewModelScope.launch {
+        settings.autoWebSearchEnabled.collect { enabled ->
+            _autoWebSearchEnabled.value = enabled
+        }
+    }
+}
 
     /**
      * Load a session from the database.
@@ -70,40 +77,47 @@ class ChatViewModel(
     }
 
     fun sendMessage(text: String) {
-        if (text.isBlank() || _isGenerating.value) return
+    if (text.isBlank() || _isGenerating.value) return
 
-        if (text.startsWith("/search ")) {
-            val query = text.removePrefix("/search ").trim()
-            _isGenerating.value = true 
-            
-            viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                try {
-                    val client = okhttp3.OkHttpClient()
-                    val request = okhttp3.Request.Builder()
-                        .url("https://html.duckduckgo.com/html/?q=$query")
-                        .build()
-                        
-                    val response = client.newCall(request).execute()
-                    val htmlData = response.body?.string() ?: ""
+    // Trigger if manual command OR if the Auto Web Search setting is enabled
+    val isAutoSearch = _autoWebSearchEnabled.value
+    val isManualSearch = text.startsWith("/search ")
+
+    if (isManualSearch || isAutoSearch) {
+        val query = text.removePrefix("/search ").trim()
+        _isGenerating.value = true 
+        
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val client = okhttp3.OkHttpClient()
+                val request = okhttp3.Request.Builder()
+                    .url("https://html.duckduckgo.com/html/?q=$query")
+                    .build()
                     
-                    val cleanText = htmlData.replace(Regex("<[^>]*>"), " ").replace(Regex("\\s+"), " ").take(1500)
-                    val injectedText = "Here is real-time web data: $cleanText \n\nBased on that, answer this: $query"
-                    
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        _isGenerating.value = false
-                        executeSend(injectedText)
-                    }
-                } catch (e: Exception) {
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        _isGenerating.value = false
-                        executeSend("Error searching the web: ${e.message}\n\nOriginal prompt: $text") 
-                    }
+                val response = client.newCall(request).execute()
+                val htmlData = response.body?.string() ?: ""
+                
+                val cleanText = htmlData.replace(Regex("<[^>]*>"), " ").replace(Regex("\\s+"), " ").take(1500)
+                
+                // Instruct the model to figure out if it needs the data
+                val injectedText = "Web context: $cleanText \n\nAnalyze the context above. If it contains information relevant to answering the following prompt, use it. If not, ignore it and answer normally.\n\nUser Prompt: $query"
+                
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    _isGenerating.value = false
+                    executeSend(injectedText)
+                }
+            } catch (e: Exception) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    _isGenerating.value = false
+                    // Fallback to sending normally if the network fails
+                    executeSend(query) 
                 }
             }
-        } else {
-            executeSend(text)
         }
+    } else {
+        executeSend(text)
     }
+}
 
     private fun executeSend(finalText: String) {
         val userMsg = ChatMessage.User(content = finalText)
