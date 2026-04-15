@@ -23,6 +23,6 @@ interface ChatSessionDao {
     suspend fun deleteSession(sessionId: Long)
 
     @Query("DELETE FROM chat_session")
-    suspend fun deleteAllSessions()
+    suspend fun deleteAllSessions(): Int
 
 }
