@@ -35,6 +35,30 @@ fun SettingsScreen(
     var localContextLength by remember { mutableIntStateOf(contextLength) }
     var localTemperature by remember { mutableFloatStateOf(temperature) }
     var localTopP by remember { mutableFloatStateOf(topP) }
+    val autoWebSearch by settings.autoWebSearchEnabled.collectAsState(initial = false)
+
+Row(
+    modifier = Modifier
+        .fillMaxWidth()
+        .padding(vertical = 8.dp),
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.SpaceBetween
+) {
+    Column(modifier = Modifier.weight(1f)) {
+        Text("Auto Web Search", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Automatically fetches web context for the model to use if needed.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+    Switch(
+        checked = autoWebSearch,
+        onCheckedChange = { 
+            coroutineScope.launch { settings.setAutoWebSearchEnabled(it) } 
+        }
+    )
+}
 
     Column(
         modifier = Modifier
