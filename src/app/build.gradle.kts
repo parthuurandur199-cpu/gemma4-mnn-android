@@ -62,9 +62,6 @@ android {
         buildConfig = true
     }
 
-    // Note: Kotlin 2.x Compose compiler plugin handles this automatically
-    // via the org.jetbrains.kotlin.plugin.compose plugin — no composeOptions needed.
-
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
@@ -118,10 +115,10 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.8")
 
-    // Room
-    implementation("androidx.room:room-runtime:2.7.1")
-    implementation("androidx.room:room-ktx:2.7.1")
-    ksp("androidx.room:room-compiler:2.7.1")
+    // Room - UPDATED TO 2.7.0 TO FIX KSP BUG
+    implementation("androidx.room:room-runtime:2.7.0")
+    implementation("androidx.room:room-ktx:2.7.0")
+    ksp("androidx.room:room-compiler:2.7.0")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
@@ -130,7 +127,7 @@ dependencies {
     // Kotlin Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
 
-    // Markdown rendering (TextView-based, lightweight)
+    // Markdown rendering
     implementation("io.noties.markwon:core:4.6.2")
     implementation("io.noties.markwon:ext-tables:4.6.2")
 
