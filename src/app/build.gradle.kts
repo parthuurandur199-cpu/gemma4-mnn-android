@@ -2,7 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose") version "2.1.21"
-    id("com.google.devtools.ksp")
+    kotlin("kapt") // THE SLEDGEHAMMER: Bypasses KSP entirely
 }
 
 android {
@@ -94,6 +94,8 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2025.03.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
+    
+    // Web Search
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Core Compose
@@ -115,10 +117,10 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.8")
 
-    // Room - UPDATED TO 2.7.0 TO FIX KSP BUG
-    implementation("androidx.room:room-runtime:2.7.0")
-    implementation("androidx.room:room-ktx:2.7.0")
-    ksp("androidx.room:room-compiler:2.7.0")
+    // Room - REPLACED KSP WITH KAPT
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
