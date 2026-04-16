@@ -2,7 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose") version "2.1.21"
-    kotlin("kapt") // THE SLEDGEHAMMER: Bypasses KSP entirely
+    kotlin("kapt")
 }
 
 android {
@@ -94,8 +94,6 @@ dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2025.03.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
-    
-    // Web Search
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Core Compose
@@ -117,7 +115,7 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.8")
 
-    // Room - REPLACED KSP WITH KAPT
+    // Room (Using KAPT to bypass compiler bug)
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
@@ -129,7 +127,7 @@ dependencies {
     // Kotlin Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
 
-    // Markdown rendering
+    // Markdown rendering (TextView-based, lightweight)
     implementation("io.noties.markwon:core:4.6.2")
     implementation("io.noties.markwon:ext-tables:4.6.2")
 
